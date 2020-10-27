@@ -65,17 +65,20 @@ class DB:
                     else:
                         try:
                             child_type = None
-                            if get_origin(field_type) is list and issubclass(child_type := get_args(field_type)[0], DBObject):
+                            if get_origin(field_type) is list \
+                                    and issubclass(child_type := get_args(field_type)[0], DBObject):
                                 sql_data[child_type.__name__].append((f"{name}_id", DB.datatype_mappings[int]))
                         except TypeError as e:
                             print(e, get_args(field_type))
 
-        sql = "\n".join([
-            f"DROP TABLE IF EXISTS {name}; CREATE TABLE {name} ({', '.join([f'{field_name} {field_type}' for field_name, field_type in items])});" for name, items in sql_data.items()
+        query = "\n".join([
+            f"DROP TABLE IF EXISTS {name}; "
+            f"CREATE TABLE {name} ({', '.join([f'{field_name} {field_type}' for field_name, field_type in items])});"
+            for name, items in sql_data.items()
         ])
 
         cursor, db = DB.new_cursor()
-        cursor.execute(sql)
+        cursor.execute(query)
         db.conn.commit()
         db.close()
 
@@ -98,7 +101,9 @@ class DBObject:
             return None
 
         cursor, db = DB.new_cursor()
-        cursor.execute(sql.SQL("SELECT * FROM {} WHERE id = (%s) LIMIT 1;").format(sql.Identifier(cls.__name__.lower())), [object_id])
+        cursor.execute(
+            sql.SQL("SELECT * FROM {} WHERE id = (%s) LIMIT 1;").format(sql.Identifier(cls.__name__.lower())),
+            [object_id])
         obj = dict(zip([desc[0] for desc in cursor.description], cursor.fetchone()))
         db.conn.commit()
         db.close()
@@ -119,7 +124,8 @@ class DBObject:
                 else:
                     setattr(self, attr, kwargs.get(attr))
             elif origin_type := get_origin(t):
-                pass
+                if origin_type is list:
+                    print("ok lets a do some list?")
 
         if save:
             self.save()
@@ -143,4 +149,6 @@ class DBObject:
             values = [item[1] for item in items]
             cursor.execute("INSERT INTO {} ({}) VALUES ({}) RETURNING id;".format(type(self).__name__.lower(), fields, value_placeholder), values)
             id = cursor.fetchone()
+            db.conn.commit()
+            db.close()
             self._id = id[0]

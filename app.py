@@ -49,8 +49,11 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
         # db.setup()
         # plan = Plan.get_by_id(1)
-        loc = Location(x=33.8918375, y=151.203509)
-        poi = PointOfInterest(label="Sydney", location=loc)
-        print(poi.__dict__)
+        mel = PointOfInterest.get_by_id(1)
+        syd = PointOfInterest.get_by_id(10)
+        plan = Plan(poi=syd, items=[
+
+        ])
+        print(plan.__dict__)
     else:
         app.run()
