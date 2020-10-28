@@ -17,7 +17,7 @@ class DB:
     password = os.environ["db_pass"]
     database = os.environ["db_database"]
 
-    datatype_mappings = {
+    datatype_mappings: Dict[type, str] = {
         datetime: "timestamp with time zone",
         Decimal: "decimal(10,7)",
         str: "text",
@@ -60,17 +60,13 @@ class DB:
                     else:
                         sql_data[name].append((field_name, DB.datatype_mappings[field_type]))
                 elif get_origin(field_type):
-                    if get_origin(field_type) is tuple and get_args(field_type) == (float, float):
-                        sql_data[name].append((field_name, DB.datatype_mappings[(float, float)]))
-                    else:
-                        try:
-                            child_type = None
-                            if get_origin(field_type) is list \
-                                    and issubclass(child_type := get_args(field_type)[0], DBObject):
-                                sql_data[child_type.__name__].append((f"{name}_id", DB.datatype_mappings[int]))
-                        except TypeError as e:
-                            # print(e, get_args(field_type))
-                            pass
+                    try:
+                        child_type = None
+                        if get_origin(field_type) is list \
+                                and issubclass(child_type := get_args(field_type)[0], DBObject):
+                            sql_data[child_type.__name__].append((f"{name}_id", DB.datatype_mappings[int]))
+                    except TypeError:
+                        pass
 
         query = "\n".join([
             f"DROP TABLE IF EXISTS {name}; "
