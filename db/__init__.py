@@ -4,7 +4,7 @@ import psycopg2
 from datetime import datetime
 from decimal import Decimal
 from psycopg2 import sql
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from typing_inspect import get_args, get_origin
 
 from extension import get_all_subclasses
@@ -69,7 +69,8 @@ class DB:
                                     and issubclass(child_type := get_args(field_type)[0], DBObject):
                                 sql_data[child_type.__name__].append((f"{name}_id", DB.datatype_mappings[int]))
                         except TypeError as e:
-                            print(e, get_args(field_type))
+                            # print(e, get_args(field_type))
+                            pass
 
         query = "\n".join([
             f"DROP TABLE IF EXISTS {name}; "
@@ -114,8 +115,26 @@ class DBObject:
     def get_types(cls: type) -> List[Tuple[str, type]]:
         return [item for item in cls.__annotations__.items()] if hasattr(cls, "__annotations__") else []
 
+    @classmethod
+    def class_hierarchy(cls):
+        return [b for base in cls.__bases__ if issubclass(base, DBObject) for b in base.class_hierarchy()] + [cls]
+
+    @classmethod
+    def all_annotations(cls) -> Dict[str, type]:
+        return {annotation: a_type for base_class in cls.class_hierarchy() if hasattr(base_class, "__annotations__")
+                for annotation, a_type in base_class.__annotations__.items()}
+
     def __init__(self, *args, object_id: Optional[int] = None, save: Optional[bool] = True, **kwargs):
         self._id = object_id
+        self._in_db = kwargs.get("in_db", False)
+
+        if DBObject not in type(self).__bases__:
+            self._parent = [t for t in type(self).__bases__ if issubclass(t, DBObject)][0](
+                *args, self._id, save, **kwargs)
+            self._id = self._parent._id
+
+        if self._id:
+            self.id = self._id
 
         for attr, t in self.__annotations__.items():
             if isinstance(t, type):
@@ -125,30 +144,34 @@ class DBObject:
                     setattr(self, attr, kwargs.get(attr))
             elif origin_type := get_origin(t):
                 if origin_type is list:
-                    print("ok lets a do some list?")
+                    # print("ok lets a do some list?")
+                    pass
 
         if save:
             self.save()
 
     def save(self):
-        if self._id:
-            items = [DBObject.get_id(value, key) for key, value in self.__dict__.items() if not key.startswith("_") and key != "id"]
+        if self._in_db:
+            items = [DBObject.get_id(value, key)
+                     for key, value in self.__dict__.items() if not key.startswith("_") and key != "id_row"]
             conditions = ", ".join(["{}=%s".format(item[0]) for item in items])
             values = [item[1] for item in items] + [self._id]
             cursor, db = DB.new_cursor()
-            cursor.execute("UPDATE {} SET {} WHERE id=%s;".format(type(self).__name__.lower(), conditions), values)
+            cursor.execute("UPDATE {} SET {} WHERE id_row=%s;".format(type(self).__name__.lower(), conditions), values)
             db.conn.commit()
             db.close()
             pass
         else:
             cursor, db = DB.new_cursor()
             items = [DBObject.get_id(value, key) for key, value in self.__dict__.items() if
-                     not key.startswith("_") and key != "id"]
+                     not key.startswith("_") and key != "id_row"]
             fields = ", ".join([item[0] for item in items])
-            value_placeholder = ", ".join(["%s" for item in items])
+            value_placeholder = ", ".join(["%s" for _ in items])
             values = [item[1] for item in items]
-            cursor.execute("INSERT INTO {} ({}) VALUES ({}) RETURNING id;".format(type(self).__name__.lower(), fields, value_placeholder), values)
-            id = cursor.fetchone()
+            cursor.execute("INSERT INTO {} ({}) VALUES ({}) RETURNING id;"
+                           .format(type(self).__name__.lower(), fields, value_placeholder), values)
+            id_row = cursor.fetchone()
             db.conn.commit()
             db.close()
-            self._id = id[0]
+            self._id = self._id or id_row[0]
+            self._in_db = True

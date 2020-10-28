@@ -4,8 +4,8 @@ from flask import Flask, request
 
 from db import DB, DBObject
 from extension import Response
-from plan import Plan
-from plan.peripheral import Location, PointOfInterest
+from plan import Plan, PlanItemGeneric, PlanItemHotel
+from plan.peripheral import Location, PointOfInterest, Hotel
 
 app = Flask(__name__)
 db = DB()
@@ -47,13 +47,22 @@ def save(plan_id):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
-        # db.setup()
+        db.setup()
         # plan = Plan.get_by_id(1)
-        mel = PointOfInterest.get_by_id(1)
-        syd = PointOfInterest.get_by_id(10)
-        plan = Plan(poi=syd, items=[
 
-        ])
-        print(plan.__dict__)
+        melbourne_location = Location(x=-37.8137564, y=144.9621251)
+        melbourne_poi = PointOfInterest(label="Melbourne", location=melbourne_location)
+        melbourne_plan = Plan(poi=melbourne_poi)
+
+        print("Melbourne Coordinates", melbourne_location.__dict__)
+        print("Melbourne POI", melbourne_poi.__dict__)
+        print("Holiday to Melbourne", melbourne_plan.__dict__)
+
+        generic_plan = PlanItemGeneric(label="Generic Plan", start_time="never.")
+        hotel_item = PlanItemHotel(hotel=Hotel(name="Big Hotel", location=melbourne_location), check_in="now", checkout="later")
+
+        print(generic_plan.__dict__)
+        print(type(generic_plan).__bases__)
+
     else:
         app.run()

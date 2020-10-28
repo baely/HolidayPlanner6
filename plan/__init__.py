@@ -6,7 +6,8 @@ from db import DBObject
 from plan.peripheral import Flight, Hotel, Location, PointOfInterest
 
 
-class PlanItemBase(ABC, DBObject):
+class PlanItemBase(DBObject):
+    start_time: str
     pass
 
 
@@ -20,8 +21,8 @@ class PlanItemGeneric(PlanItemBase):
 
 class PlanItemHotel(PlanItemBase):
     hotel: Hotel
-    check_in: datetime
-    check_out: datetime
+    check_in: str
+    check_out: str
 
 
 class Plan(DBObject):
