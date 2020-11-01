@@ -10,22 +10,14 @@ engine = create_engine("postgresql://postgres:100598@localhost:5432/postgres", e
 Base = declarative_base()
 
 
-class Location(Base):
-    __tablename__ = "Location"
-    id: int = Column(Integer, primary_key=True)
-
-    x: float = Column(Float)
-    y: float = Column(Float)
-
-
 class Airport(Base):
     __tablename__ = "Airport"
     id: int = Column(Integer, primary_key=True)
 
     name: str = Column(String)
-    abbr: str = Column(String)
-    location_id: int = Column(Integer, ForeignKey('Location.id'))
-    location: Location = relationship(Location)
+    icao: str = Column(String)
+    lat: float = Column(Float)
+    lon: float = Column(Float)
 
 
 class FlightPoint(Base):
@@ -53,8 +45,8 @@ class PointOfInterest(Base):
     id: int = Column(Integer, primary_key=True)
 
     label: str = Column(String)
-    location_id: int = Column(Integer, ForeignKey('Location.id'))
-    location: Location = relationship(Location)
+    lat: float = Column(Float)
+    lon: float = Column(Float)
 
 
 class Hotel(Base):
@@ -62,8 +54,8 @@ class Hotel(Base):
     id: int = Column(Integer, primary_key=True)
 
     name: str = Column(String)
-    location_id: int = Column(Integer, ForeignKey('Location.id'))
-    location: Location = relationship(Location)
+    lat: float = Column(Float)
+    lon: float = Column(Float)
 
 
 class PlanItemBase(Base):
@@ -117,13 +109,15 @@ class Plan(Base):
     __tablename__ = "Plan"
     id: int = Column(Integer, primary_key=True)
 
-    poi_id: int = Column(Integer, ForeignKey('PointOfInterest.id'))
-    poi: PointOfInterest = relationship(PointOfInterest)
+    poi: str = Column(String)
     items: List[PlanItemBase] = relationship(PlanItemBase)
 
     @staticmethod
     def from_object(o: Any, plan_id: Optional[int] = None) -> 'Plan':
-        pass
+        print(o)
+        p = Plan(**o)
+        print(p)
+        return p
 
     def update_from_object(self, o: Any):
         pass

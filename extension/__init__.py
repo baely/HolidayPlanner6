@@ -29,10 +29,9 @@ def get_all_subclasses(cls: type) -> List[type]:
 def to_dict(obj: Any) -> Any:
     if _is_sa_mapped(type(obj)):
         return {
-            k: to_dict(getattr(obj, k)) for k in obj.__annotations__.keys() if not k.startswith("_")
+            k: to_dict(getattr(obj, k)) for k in obj.__annotations__.keys() if not k.startswith("_") and not k[-3:] == "_id"
         }
     elif isinstance(obj, (list, tuple)):
-        print(obj)
         return [
             to_dict(i) for i in obj
         ]
@@ -61,8 +60,6 @@ class Response:
 
     def as_response(self):
         if isinstance(self.body, object):
-            print(to_dict(self.body))
-
             response = jsonify(to_dict(self.body))
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response

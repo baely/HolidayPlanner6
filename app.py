@@ -3,6 +3,8 @@ import sys
 from flask import Flask, request
 from sqlalchemy.orm import sessionmaker
 
+import plan
+
 from extension import Response
 from plan import engine, Plan, PlanItemHotel
 
@@ -19,7 +21,7 @@ def index():
 @app.route("/api/plan/", methods=["GET"])
 def list_plans():
     plan_list = [
-        {"id": p.id, "name": p.poi.label} for p in session.query(Plan).all()
+        {"id": p.id, "name": p.poi} for p in session.query(Plan).all()
     ]
     return Response(plan_list).as_response()
 
@@ -36,6 +38,9 @@ def create():
     if "id" in body.keys():
         del body["id"]
     p = Plan.from_object(body)
+    print("pdict", p.__dict__)
+    session.add(p)
+    session.commit()
     return Response(p).as_response()
 
 
@@ -44,17 +49,13 @@ def save(plan_id):
     body = request.get_json()
     p: Plan = session.query(Plan).get(plan_id)
     p.update_from_object(body)
-    # plan
     return Response(p).as_response()
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
+        pass
         # db.setup()
         # plan = Plan.get_by_id(1)
-
-        plan = session.query(Plan).get(6)
-
-        print(plan.poi.location)
     else:
         app.run()
