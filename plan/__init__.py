@@ -1,13 +1,12 @@
-from abc import ABC
 from datetime import datetime
-from typing import List
+from typing import Any, List, Optional
 
 from sqlalchemy import create_engine, Column, DateTime, Integer, Float, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 
-engine = create_engine("postgresql://postgres:100598@localhost:5432/postgres", echo=True)
+engine = create_engine("postgresql://postgres:100598@localhost:5432/postgres", echo=False)
 Base = declarative_base()
 
 
@@ -44,9 +43,9 @@ class Flight(Base):
 
     flight_plan: int = Column(Integer, ForeignKey('PlanItemFlight.id'))
     departure_id: int = Column(Integer, ForeignKey('FlightPoint.id'))
-    departure: FlightPoint = relationship(FlightPoint)
+    departure: FlightPoint = relationship(FlightPoint, foreign_keys=[departure_id])
     arrival_id: int = Column(Integer, ForeignKey('FlightPoint.id'))
-    arrival: FlightPoint = relationship(FlightPoint)
+    arrival: FlightPoint = relationship(FlightPoint, foreign_keys=[arrival_id])
 
 
 class PointOfInterest(Base):
@@ -104,7 +103,8 @@ class PlanItemHotel(PlanItemBase):
     __tablename__ = "PlanItemHotel"
     id: int = Column(Integer, ForeignKey('PlanItemBase.id'), primary_key=True)
 
-    hotel: Hotel
+    hotel_id: int = Column(Integer, ForeignKey('Hotel.id'))
+    hotel: Hotel = relationship(Hotel)
     check_in: datetime = Column(DateTime)
     check_out: datetime = Column(DateTime)
 
@@ -120,6 +120,13 @@ class Plan(Base):
     poi_id: int = Column(Integer, ForeignKey('PointOfInterest.id'))
     poi: PointOfInterest = relationship(PointOfInterest)
     items: List[PlanItemBase] = relationship(PlanItemBase)
+
+    @staticmethod
+    def from_object(o: Any, plan_id: Optional[int] = None) -> 'Plan':
+        pass
+
+    def update_from_object(self, o: Any):
+        pass
 
 
 Base.metadata.create_all(engine)

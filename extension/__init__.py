@@ -1,8 +1,19 @@
 from datetime import datetime
 from enum import Enum
 from flask import jsonify
+from sqlalchemy.orm.exc import UnmappedClassError
+from sqlalchemy.orm.util import class_mapper
+
 
 from typing import Any, List
+
+
+def _is_sa_mapped(cls):
+    try:
+        class_mapper(cls)
+        return True
+    except UnmappedClassError:
+        return False
 
 
 def get_all_subclasses(cls: type) -> List[type]:
@@ -16,14 +27,19 @@ def get_all_subclasses(cls: type) -> List[type]:
 
 
 def to_dict(obj: Any) -> Any:
-    if hasattr(obj, "__dict__"):
+    if _is_sa_mapped(type(obj)):
         return {
-            k: to_dict(obj.__dict__[k]) for k in obj.__dict__.keys() if not k.startswith("_")
+            k: to_dict(getattr(obj, k)) for k in obj.__annotations__.keys() if not k.startswith("_")
         }
     elif isinstance(obj, (list, tuple)):
+        print(obj)
         return [
             to_dict(i) for i in obj
         ]
+    elif hasattr(obj, "__dict__"):
+        return {
+            k: to_dict(obj.__dict__[k]) for k in obj.__dict__.keys() if not k.startswith("_")
+        }
     elif isinstance(obj, datetime):
         return obj.isoformat()
     else:
@@ -45,6 +61,8 @@ class Response:
 
     def as_response(self):
         if isinstance(self.body, object):
+            print(to_dict(self.body))
+
             response = jsonify(to_dict(self.body))
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response

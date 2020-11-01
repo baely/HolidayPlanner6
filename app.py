@@ -4,7 +4,7 @@ from flask import Flask, request
 from sqlalchemy.orm import sessionmaker
 
 from extension import Response
-from plan import engine, Plan, PlanItemGeneric, PlanItemHotel, Location, PointOfInterest, Hotel
+from plan import engine, Plan, PlanItemHotel
 
 app = Flask(__name__)
 Session = sessionmaker(bind=engine)
@@ -18,13 +18,15 @@ def index():
 
 @app.route("/api/plan/", methods=["GET"])
 def list_plans():
-    plan_list = Plan.list_all()
+    plan_list = [
+        {"id": p.id, "name": p.poi.label} for p in session.query(Plan).all()
+    ]
     return Response(plan_list).as_response()
 
 
-@app.route("/api/plan/<plan_id>", methods=["GET"])
-def get_plan(plan_id):
-    p = Plan.load(plan_id)
+@app.route("/api/plan/<int:plan_id>", methods=["GET"])
+def get_plan(plan_id: int):
+    p: Plan = session.query(Plan).get(plan_id)
     return Response(p).as_response()
 
 
@@ -40,8 +42,9 @@ def create():
 @app.route("/api/plan/<plan_id>", methods=["POST"])
 def save(plan_id):
     body = request.get_json()
-    p = Plan.from_object(body, plan_id)
-    p.save()
+    p: Plan = session.query(Plan).get(plan_id)
+    p.update_from_object(body)
+    # plan
     return Response(p).as_response()
 
 
@@ -49,6 +52,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "setup":
         # db.setup()
         # plan = Plan.get_by_id(1)
-        pass
+
+        plan = session.query(Plan).get(6)
+
+        print(plan.poi.location)
     else:
         app.run()
