@@ -102,7 +102,7 @@ def create():
     body = request.get_json()
     if "id" in body.keys():
         del body["id"]
-    p = Plan.from_object(body)
+    p = Plan(**body)
     session.add(p)
     session.commit()
     return Response(p).as_response()

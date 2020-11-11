@@ -122,10 +122,6 @@ class Plan(Base):
     poi: str = Column(String)
     items: List[PlanItemBase] = relationship(PlanItemBase)
 
-    @staticmethod
-    def from_object(o: Any, plan_id: Optional[int] = None) -> 'Plan':
-        return Plan(**o)
-
     def update_from_object(self, o: Any):
         pass
 
