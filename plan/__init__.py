@@ -12,6 +12,7 @@ Base = declarative_base()
 
 class Airport(Base):
     __tablename__ = "Airport"
+    __mutable__ = False
     id: int = Column(Integer, primary_key=True)
 
     name: str = Column(String)
@@ -22,6 +23,7 @@ class Airport(Base):
 
 class FlightPoint(Base):
     __tablename__ = "FlightPoint"
+    __mutable__ = True
     id: int = Column(Integer, primary_key=True)
 
     airport_id: int = Column(Integer, ForeignKey('Airport.id'))
@@ -31,6 +33,7 @@ class FlightPoint(Base):
 
 class Flight(Base):
     __tablename__ = "Flight"
+    __mutable__ = True
     id: int = Column(Integer, primary_key=True)
 
     flight_plan: int = Column(Integer, ForeignKey('PlanItemFlight.id'))
@@ -42,6 +45,7 @@ class Flight(Base):
 
 class PointOfInterest(Base):
     __tablename__ = "PointOfInterest"
+    __mutable__ = False
     id: int = Column(Integer, primary_key=True)
 
     label: str = Column(String)
@@ -51,6 +55,7 @@ class PointOfInterest(Base):
 
 class Hotel(Base):
     __tablename__ = "Hotel"
+    __mutable__ = True
     id: int = Column(Integer, primary_key=True)
 
     name: str = Column(String)
@@ -60,6 +65,7 @@ class Hotel(Base):
 
 class PlanItemBase(Base):
     __tablename__ = "PlanItemBase"
+    __mutable__ = True
     id: int = Column(Integer, primary_key=True)
 
     start_time: str = Column(String)
@@ -71,6 +77,7 @@ class PlanItemBase(Base):
 
 class PlanItemFlight(PlanItemBase):
     __tablename__ = "PlanItemFlight"
+    __mutable__ = True
     id: int = Column(Integer, ForeignKey('PlanItemBase.id'), primary_key=True)
 
     flights: List[Flight] = relationship(Flight)
@@ -82,6 +89,7 @@ class PlanItemFlight(PlanItemBase):
 
 class PlanItemGeneric(PlanItemBase):
     __tablename__ = "PlanItemGeneric"
+    __mutable__ = True
     id: int = Column(Integer, ForeignKey('PlanItemBase.id'), primary_key=True)
 
     label: str = Column(String)
@@ -93,6 +101,7 @@ class PlanItemGeneric(PlanItemBase):
 
 class PlanItemHotel(PlanItemBase):
     __tablename__ = "PlanItemHotel"
+    __mutable__ = True
     id: int = Column(Integer, ForeignKey('PlanItemBase.id'), primary_key=True)
 
     hotel_id: int = Column(Integer, ForeignKey('Hotel.id'))
@@ -107,6 +116,7 @@ class PlanItemHotel(PlanItemBase):
 
 class Plan(Base):
     __tablename__ = "Plan"
+    __mutable__ = True
     id: int = Column(Integer, primary_key=True)
 
     poi: str = Column(String)

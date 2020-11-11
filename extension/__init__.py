@@ -8,7 +8,9 @@ from sqlalchemy.orm.util import class_mapper
 from typing import Any, List
 
 
-def _is_sa_mapped(cls):
+def is_sa_mapped(cls):
+    if not isinstance(cls, type):
+        return False
     try:
         class_mapper(cls)
         return True
@@ -27,7 +29,7 @@ def get_all_subclasses(cls: type) -> List[type]:
 
 
 def to_dict(obj: Any) -> Any:
-    if _is_sa_mapped(type(obj)):
+    if is_sa_mapped(type(obj)):
         return {
             k: to_dict(getattr(obj, k)) for k in obj.__annotations__.keys() if not k.startswith("_") and not k[-3:] == "_id"
         }
