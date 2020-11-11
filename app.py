@@ -2,44 +2,79 @@ import sys
 
 from flask import Flask, request
 from sqlalchemy.orm import sessionmaker
+from typing import Optional, Type
 from typing_inspect import get_args, get_origin
 
-import plan
-
 from extension import Response, is_sa_mapped
-from plan import engine, Plan, PlanItemHotel
+from plan import engine, Base, Plan, PlanItemBase, PlanItemFlight, PlanItemGeneric, PlanItemHotel
 
 app = Flask(__name__)
 Session = sessionmaker(bind=engine)
 session = Session()
 
 
-def update_orm_obj(obj, data):
-    for attr, t in obj.__annotations__.items():
-        if is_sa_mapped(t):
-            if t.__mutable__:
+def new_object(t: Type[Base], data) -> Base:
+    if issubclass(t, PlanItemBase):
+        if "flights" in data:
+            return PlanItemFlight(data)
+        elif "hotel" in data:
+            return PlanItemHotel(**data)
+        else:
+            return PlanItemGeneric(data)
+
+    return t(**data)
+
+
+def new_orm_obj(t: Type[Base], data) -> Base:
+    obj = new_object(t, data)
+    session.add(obj)
+    return obj
+
+
+def search_orm_obj(t: Type[Base], data) -> Optional[Base]:
+    return t.search_orm(data)
+
+
+def new_or_existing_orm_obj(t: type, data: dict) -> Base:
+    # Search for ORM of type t that looks exactly like data
+    if obj := search_orm_obj(t, data):
+        return obj
+    return new_orm_obj(type, data)
+
+
+def update_orm_obj(obj: Base, data: dict):
+    for attr, attr_type in obj.__annotations__.items():
+        if not (data_value := data.get(attr)) or attr == "id":
+            continue
+        new_value = None
+        if is_sa_mapped(attr_type):
+            if attr_type.__mutable__:
                 # Attribute of object is mutable (Same object, update the object)
-                pass
+                new_value = update_orm_obj(getattr(obj, attr_type), data_value)
             else:
                 # Attribute of object is immutable (New object / Reuse matching existing object)
-                pass
-        elif bt := get_origin(t):
-            if bt == list:
-                st = get_args(t)[0]
-                if is_sa_mapped(st):
-                    if st.__mutable__:
+                new_value = new_or_existing_orm_obj(attr_type, data_value)
+        elif attr_base_type := get_origin(attr_type):
+            if attr_base_type is list:
+                # This doesn't work for some reason at this stage
+                continue
+                attr_sub_type = get_args(attr_type)[0]
+                if is_sa_mapped(attr_sub_type):
+                    if attr_sub_type.__mutable__:
                         # Attribute is a list of objects that are mutable (List of same objects, update each object)
-                        pass
+                        new_value = [new_orm_obj(attr_sub_type, element) for element in data_value]
                     else:
                         # Attribute is a list of objects that are immutable (List of new object / reuse matching)
-                        pass
+                        new_value = [new_or_existing_orm_obj(attr_sub_type, element) for element in data_value]
                 else:
                     # (should be) Attribute is a list of basic types (List of updated values)
                     # Shouldn't be hit as per current design
                     pass
         else:
             # Attribute is a basic type (Updated value)
+            new_value = data_value
             pass
+        setattr(obj, attr, new_value)
     return obj
 
 
@@ -78,6 +113,7 @@ def save(plan_id):
     body = request.get_json()
     p: Plan = session.query(Plan).get(plan_id)
     p: Plan = update_orm_obj(p, body)
+    session.commit()
     return Response(p).as_response()
 
 

@@ -9,6 +9,7 @@ from typing import Any, List
 
 
 def is_sa_mapped(cls):
+    # This method is stolen from StackOverflow
     if not isinstance(cls, type):
         return False
     try:

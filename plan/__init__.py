@@ -124,10 +124,7 @@ class Plan(Base):
 
     @staticmethod
     def from_object(o: Any, plan_id: Optional[int] = None) -> 'Plan':
-        print(o)
-        p = Plan(**o)
-        print(p)
-        return p
+        return Plan(**o)
 
     def update_from_object(self, o: Any):
         pass
