@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List
 
 from sqlalchemy import create_engine, Column, DateTime, Integer, Float, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -19,6 +19,10 @@ class Airport(Base):
     icao: str = Column(String)
     lat: float = Column(Float)
     lon: float = Column(Float)
+
+    @staticmethod
+    def search_orm(session, query):
+        return session.query(Airport).get(query.get("id"))
 
 
 class FlightPoint(Base):
