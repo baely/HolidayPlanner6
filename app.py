@@ -62,8 +62,6 @@ def update_orm_obj(obj: Base, data: dict):
                 new_value = new_or_existing_orm_obj(attr_type, data_value)
         elif attr_base_type := get_origin(attr_type):
             if attr_base_type is list:
-                # This doesn't work for some reason at this stage
-                # continue
                 attr_sub_type = get_args(attr_type)[0]
                 if is_sa_mapped(attr_sub_type):
                     if attr_sub_type.__mutable__:
